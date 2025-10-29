@@ -34,9 +34,34 @@
   <body>
 
 <!-- load the d3.js library -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
 
 <script>
+var settings = {
+  "url": "https://prudens.educloud.no/api/3.25/auth/signin",
+  "method": "POST",
+  "timeout": 0,
+  "headers": {
+    "X-Tableau-Auth": "cUqF/lHMQguzN+VyGbxl1Q==:5rMRXrNRPHk8bd2FC6d1UQYwXdIXzB9Z",
+    "Content-Type": "application/json"
+  },
+  "data": JSON.stringify({
+    "credentials": {
+      "personalAccessTokenName": "VizQL-test",
+      "personalAccessTokenSecret": "ms/Mux4LRtmVZxi+oPGGGg==:HYm0K20CDG6ccOPzE096vxbaPugF3OfQ",
+      "site": {
+        "contentUrl": "UiO"
+      }
+    }
+  }),
+};
+
+$.ajax(settings).done(function (response) {
+  console.log(response);
+});
+
+
 
 var treeData = [
   {
@@ -64,6 +89,8 @@ var treeData = [
     ]
   }
 ];
+
+
 
 
 // ************** Generate the tree diagram	 *****************
