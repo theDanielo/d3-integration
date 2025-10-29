@@ -1,4 +1,6 @@
 
 $(document).ready(function(){
-    console.log("hahhhahha")
+    tableau.extensions.initializeAsync().then(function () {
+        console.log("anemavire")
+    })
 })
