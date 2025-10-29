@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Tablaeu Frontend Embed (sin backend)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Embedding API v3 (web component <tableau-viz>) -->
+  <script src="https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:16px;background:#0b0b0c;color:#eaeaea}
+    .bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    button,select,input{padding:8px 12px;border-radius:10px;border:1px solid #333;background:#1a1a1b;color:#eaeaea}
+    button:hover{filter:brightness(1.1);cursor:pointer}
+    #viz{width:100%;height:80vh;border-radius:14px;overflow:hidden;border:1px solid #222}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    label{opacity:.85}
+  </style>
+</head>
+<body>
+  <h1>Tableau – App solo Frontend</h1>
+
+  <div class="bar">
+    <div class="row">
+      <label for="campo">Campo</label>
+      <input id="campo" placeholder="Nombre del filtro (ej. 'Region')" />
+      <label for="valor">Valor</label>
+      <input id="valor" placeholder="Valor (ej. 'Europe')" />
+      <button id="aplicarFiltro">Aplicar filtro</button>
+      <button id="limpiarFiltro">Limpiar</button>
+    </div>
+    <div class="row">
+      <button id="refrescar">Refrescar datos</button>
+      <button id="exportImg">Exportar PNG</button>
+      <button id="exportPdf">Exportar PDF</button>
+      <button id="marcar">Mostrar marcas seleccionadas</button>
+    </div>
+  </div>
+
+  <!-- Reemplaza VIZ_URL por tu vista (de tu Tableau Server/Cloud) -->
+  <tableau-viz id="viz"
+               src="VIZ_URL"
+               hide-tabs
+               toolbar="bottom">
+  </tableau-viz>
+
+  <script>
+    // Utilidades
+    function getActiveSheet(viz) {
+      const wb = viz.workbook;
+      const sheet = wb.activeSheet;
+      // Si es dashboard/story, hay que elegir hoja de trabajo si procediera
+      return sheet;
+    }
+
+    async function applyFilter(viz, fieldName, value) {
+      const sheet = getActiveSheet(viz);
+      if (sheet.sheetType === "dashboard") {
+        // Aplica a todas las hojas (o selecciona una concreta por nombre)
+        const worksheets = sheet.worksheets;
+        await Promise.all(worksheets.map(ws =>
+          ws.applyFilterAsync(fieldName, value, "replace")
+            .catch(()=>{}) // ignora si una hoja no tiene el campo
+        ));
+      } else {
+        await sheet.applyFilterAsync(fieldName, value, "replace");
+      }
+    }
+
+    async function clearFilter(viz, fieldName) {
+      const sheet = getActiveSheet(viz);
+      if (sheet.sheetType === "dashboard") {
+        const worksheets = sheet.worksheets;
+        await Promise.all(worksheets.map(ws =>
+          ws.clearFilterAsync(fieldName).catch(()=>{})
+        ));
+      } else {
+        await sheet.clearFilterAsync(fieldName);
+      }
+    }
+
+    // Referencias UI
+    const vizEl = document.getElementById("viz");
+    const btnFiltro = document.getElementById("aplicarFiltro");
+    const btnClear = document.getElementById("limpiarFiltro");
+    const btnRefresh = document.getElementById("refrescar");
+    const btnImg = document.getElementById("exportImg");
+    const btnPdf = document.getElementById("exportPdf");
+    const btnMarks = document.getElementById("marcar");
+    const inputCampo = document.getElementById("campo");
+    const inputValor = document.getElementById("valor");
+
+    // Espera a que el viz esté listo
+    vizEl.addEventListener("firstinteractive", () => {
+      console.log("Viz listo");
+    });
+
+    btnFiltro.onclick = async () => {
+      const field = inputCampo.value?.trim();
+      const val = inputValor.value?.trim();
+      if (!field || !val) return alert("Indica campo y valor");
+      try {
+        await applyFilter(vizEl, field, val);
+      } catch (e) { alert("Error al aplicar filtro: " + e); }
+    };
+
+    btnClear.onclick = async () => {
+      const field = inputCampo.value?.trim();
+      if (!field) return alert("Indica campo");
+      try {
+        await clearFilter(vizEl, field);
+      } catch (e) { alert("Error al limpiar filtro: " + e); }
+    };
+
+    btnRefresh.onclick = async () => {
+      try { await vizEl.refreshDataAsync(); }
+      catch (e) { alert("Error al refrescar: " + e); }
+    };
+
+    btnImg.onclick = async () => {
+      try {
+        const blob = await vizEl.showExportImageDialogAsync();
+        // Si usas showExportImageDialogAsync, Tableau muestra diálogo integrado.
+        // Con exportImageAsync obtendrías un Blob y podrías descargarlo:
+        // const blob = await vizEl.exportImageAsync();
+        // const url = URL.createObjectURL(blob);
